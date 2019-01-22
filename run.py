@@ -13,8 +13,11 @@ class Bot:
   source_board: Board
   dest_board: Board
 
-  list_mapping: Dict[List[trello.List], List[trello.List]]
-  label_mapping: Dict[List[Label], List[List[Label]]]
+  list_mapping: Dict[trello.List, trello.List]
+  label_mapping: Dict[Label, List[Label]]
+
+  member_via_label: Dict[str, List[str]]
+  comment_via_label: Dict[str, List[str]]
 
   need_confirmation: bool
 
@@ -48,16 +51,156 @@ class Bot:
     print('== Labels')
     for label in board.get_labels():
       print('[{0}]{1} : {2}'.format(label.color, label.name, label.id))
+    print('== Lists')
+    for list in board.list_lists():
+      print('{0} : {1}'.format(list.name, list.id))
 
   def extract_info(self):
     print('extracting info...')
     print('\n\n=============== Source Board: {0}'.format(self.source_board.name))
     Bot.extract_board_info(self.source_board)
-    print('\n\n=============== Source Board: {0}'.format(self.dest_board.name))
+    print('\n\n=============== Destination Board: {0}'.format(self.dest_board.name))
     Bot.extract_board_info(self.dest_board)
 
-  def start_bot(self):
+  # bot
+
+  def prepare_list_mapping(self):
+    print('preparing list mappings...')
+    list_mapping = self.config.get('list_mapping', {})
+    from_map_list: List[trello.List] = []
+    to_map_list: List[trello.List] = []
+    for from_id in list_mapping:
+      to_id = list_mapping[from_id]
+      from_map_list.append(trello.List(self.source_board, from_id))
+      to_map_list.append(trello.List(self.dest_board, to_id))
+    self.list_mapping = {}
+    for (index, from_map) in enumerate(from_map_list):
+      self.list_mapping[from_map] = to_map_list[index]
+
+  def prepare_label_mapping(self):
+    print('preparing label mappings...')
+    label_mapping = self.config.get('label_mapping', {})
+    from_map_label: List[Label] = []
+    to_map_labels: List[List[Label]] = []
+    for from_id in label_mapping:
+      to_ids = label_mapping[from_id]
+      from_map_label.append(Label(self.client, from_id, name='?'))
+      to_map_labels.append([Label(self.client, x, name='?') for x in to_ids])
+    for label in from_map_label:
+      label.fetch()
+    for labels in to_map_labels:
+      for label in labels:
+        label.fetch()
+    self.label_mapping = {}
+    for (index, from_map) in enumerate(from_map_label):
+      self.label_mapping[from_map] = to_map_labels[index]
+
+  def prepare_member_via_label(self):
+    print('preparing member via labels...')
+    member_mapping = self.config.get('member_via_label', {})
+    from_map_label: List[str] = []
+    to_map_members: List[List[str]] = []
+    for from_id in member_mapping:
+      to_ids = member_mapping[from_id]
+      from_map_label.append(from_id)
+      to_map_members.append(to_ids)
+    self.member_via_label = {}
+    for (index, item) in enumerate(from_map_label):
+      self.member_via_label[item] = to_map_members[index]
+
+  def prepare_comment_via_label(self):
+    print('prepare comment via labels')
+    member_mapping = self.config.get('comment_via_label', {})
+    from_map_label: List[str] = []
+    to_map_comment: List[List[str]] = []
+    for from_id in member_mapping:
+      to_comments = member_mapping[from_id]
+      from_map_label.append(from_id)
+      to_map_comment.append(to_comments)
+    self.comment_via_label = {}
+    for (index, item) in enumerate(from_map_label):
+      self.comment_via_label[item] = to_map_comment[index]
+
+  max_batch = 1
+  current_batch_index = 0
+  max_tasks = 0
+  current_task_index = 0
+
+  def update_status(self):
+    print('\rBatch: [{0}/{1}] Task: [{2}/{3}]'.format(
+      str(self.current_batch_index),
+      str(self.max_batch),
+      str(self.current_task_index),
+      str(self.max_tasks)
+    ), end='')
+
+  def run_task(self, card: Card, to_list: trello.List):
+    card_labels = card.labels
+    if card_labels is None:
+      card_labels = []
+    # find all labels need to apply after moving
+    labels_to_apply: List[Label] = []
+    for label in card_labels:
+      label_list = self.label_mapping.get(label, [])
+      labels_to_apply += label_list
+    # find all members need to assign after moving
+    members_to_assign: List[str] = []
+    for label in card_labels:
+      member_list = self.member_via_label.get(label.id, [])
+      members_to_assign += member_list
+    # find all comments need to make after moving
+    comments_to_make: List[str] = []
+    for label in card_labels:
+      comment_list = self.comment_via_label.get(label.id, [])
+      comments_to_make += comment_list
+    # remove all members
+    for member in card.idMembers:
+      card.unassign(member)
+    # remove all labels
+    for label in card_labels:
+      card.remove_label(label)
+    # move card
+    card.change_board(to_list.board.id, to_list.id)
+    # assign members
+    for member in members_to_assign:
+      card.assign(member)
+    # label
+    for label in labels_to_apply:
+      card.add_label(label)
+    # comment
+    for comment in comments_to_make:
+      card.comment(comment)
+
+  def run_batch(self, move_list: trello.List):
     pass
+    # get card list ( tasks )
+    cards = move_list.list_cards()
+    # update max_task
+    self.max_tasks = len(cards)
+    self.update_status()
+    # run every task then add to index
+    for task in cards:
+      self.run_task(task, self.list_mapping[move_list])
+      self.current_task_index += 1
+      self.update_status()
+
+  def start_tasks(self):
+    print('starting tasks...\n\n')
+    self.max_batch = len(self.list_mapping)
+    self.update_status()
+    for batch in self.list_mapping:
+      self.run_batch(batch)
+      self.current_batch_index += 1
+      self.current_task_index = 0
+      self.update_status()
+    print('\n\n Done!')
+
+  def start_bot(self):
+    self.prepare_list_mapping()
+    self.prepare_label_mapping()
+    self.prepare_member_via_label()
+    self.prepare_comment_via_label()
+    self.start_tasks()
 
 
 def main():
