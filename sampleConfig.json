@@ -1,0 +1,23 @@
+{
+  "source_board": "#source_board",
+  "destination_board": "#destination_board",
+  "need_confirmation": true,
+  "extract_board_info": true,
+  "trello": {
+    "api_key": "",
+    "api_secret": ""
+  },
+  "move_mapping": {
+    "#to_sprint": "#sprint",
+    "#to_waiting": "#waiting"
+  },
+  "label_mapping": {
+    "label": ["label"]
+  },
+  "member_via_label": {
+    "label": ["users"]
+  },
+  "comment_via_label": {
+    "label": ["comment"]
+  }
+}
