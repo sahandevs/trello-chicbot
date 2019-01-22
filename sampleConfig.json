@@ -5,7 +5,7 @@
   "extract_board_info": true,
   "api_key": "",
   "api_secret": "",
-  "move_mapping": {
+  "list_mapping": {
     "#to_sprint": "#sprint",
     "#to_waiting": "#waiting"
   },
