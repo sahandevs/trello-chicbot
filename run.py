@@ -34,11 +34,6 @@ class Bot:
       elif self.config['destination_board'] in board.name:
         self.dest_board = board
 
-    if self.source_board is None:
-      raise Exception('source board not found')
-    if self.dest_board is None:
-      raise Exception('destination board not found')
-
     # check config if extract info extract else start bot
     if self.config.get('extract_board_info', False):
       self.extract_info()
@@ -56,9 +51,9 @@ class Bot:
 
   def extract_info(self):
     print('extracting info...')
-    print('=== Source Board: {0}'.format(self.source_board.name))
+    print('\n\n=============== Source Board: {0}'.format(self.source_board.name))
     Bot.extract_board_info(self.source_board)
-    print('=== Destination Board: {0}'.format(self.dest_board.name))
+    print('\n\n=============== Source Board: {0}'.format(self.dest_board.name))
     Bot.extract_board_info(self.dest_board)
 
   def start_bot(self):
