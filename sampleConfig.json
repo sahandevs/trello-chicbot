@@ -3,6 +3,8 @@
   "destination_board": "#destination_board",
   "need_confirmation": true,
   "extract_board_info": true,
+  "copy_from_source": false,
+  "comment_original_card_share_link_to_copied_card": false,
   "api_key": "",
   "api_secret": "",
   "list_mapping": {

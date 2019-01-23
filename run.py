@@ -3,6 +3,7 @@ import trello
 from typing import *
 import sys
 import json
+from lib.trello_extensions import copy_card
 
 
 class Bot:
@@ -23,9 +24,12 @@ class Bot:
 
   need_confirmation: bool
 
+  copy_from_source: bool
+
   def __init__(self, config: dict):
     self.config = config
     self.need_confirmation = config.get('need_confirmation', False)
+    self.copy_from_source = config.get('copy_from_source', False)
 
   def start(self):
     # create client
@@ -144,7 +148,34 @@ class Bot:
       str(self.max_tasks)
     ), end='')
 
-  def run_task(self, card: Card, to_list: trello.List):
+  def run_task_copy(self, card: Card, to_list: trello.List):
+    card_labels = card.labels
+    if card_labels is None:
+      card_labels = []
+    # find all labels need to apply after moving
+    labels_to_apply: List[Label] = []
+    for label in card_labels:
+      label_list = self.label_mapping.get(label, [])
+      labels_to_apply += label_list
+    labels_to_apply = set([x.id for x in labels_to_apply])
+    # find all members need to assign after moving
+    members_to_assign: List[str] = []
+    for label in card_labels:
+      member_list = self.member_via_label.get(label.id, [])
+      members_to_assign += member_list
+    members_to_assign = set(members_to_assign)
+    # find all comments need to make after moving
+    comments_to_make: List[str] = []
+    for label in card_labels:
+      comment_list = self.comment_via_label.get(label.id, [])
+      comments_to_make += comment_list
+    # copy card
+    new_card = copy_card(card, to_list, labels_to_apply, members_to_assign)
+    # comments
+    if self.config.get('comment_original_card_share_link_to_copied_card', False):
+      new_card.comment(card.short_url)
+
+  def run_task_move(self, card: Card, to_list: trello.List):
     card_labels = card.labels
     if card_labels is None:
       card_labels = []
@@ -196,7 +227,10 @@ class Bot:
     self.update_status()
     # run every task then add to index
     for task in cards:
-      self.run_task(task, self.list_mapping[move_list])
+      if self.config.get('copy_from_source', False):
+        self.run_task_copy(task, self.list_mapping[move_list])
+      else:
+        self.run_task_move(task, self.list_mapping[move_list])
       self.current_task_index += 1
       self.update_status()
 
