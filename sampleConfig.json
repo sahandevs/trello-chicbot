@@ -5,6 +5,7 @@
   "extract_board_info": true,
   "copy_from_source": false,
   "comment_original_card_share_link_to_copied_card": false,
+  "labels_to_change_with_label_mapping_labels": {},
   "api_key": "",
   "api_secret": "",
   "label_to_list_mapping": {

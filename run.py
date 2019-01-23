@@ -188,6 +188,13 @@ class Bot:
     # comments
     if self.config.get('comment_original_card_share_link_to_copied_card', False):
       new_card.comment(card.short_url)
+    # remove mapping labels and add label via labels_to_change_with_label_mapping_labels if present
+    labels_to_remove = [label for label in card_labels if label.id in self.label_to_list_mapping]
+    change_label_mapping = self.config.get('labels_to_change_with_label_mapping_labels', {})
+    for label in labels_to_remove:
+      card.remove_label(Label(self.client, label, '?'))
+      if change_label_mapping.get(label, None):
+        card.add_label(Label(self.client, change_label_mapping.get(label, None), ''))
 
   def run_task_move(self, card: Card, to_list: trello.List):
     card_labels = card.labels
