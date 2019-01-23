@@ -9,6 +9,9 @@
     "#to_sprint": "#sprint",
     "#to_waiting": "#waiting"
   },
+  "comment_from_list": {
+    "from_list_id": ["comment"]
+  },
   "label_mapping": {
     "label": [
       "label"

@@ -19,6 +19,8 @@ class Bot:
   member_via_label: Dict[str, List[str]]
   comment_via_label: Dict[str, List[str]]
 
+  comment_from_list: Dict[str, List[str]]
+
   need_confirmation: bool
 
   def __init__(self, config: dict):
@@ -86,11 +88,6 @@ class Bot:
       to_ids = label_mapping[from_id]
       from_map_label.append(Label(self.client, from_id, name='?'))
       to_map_labels.append([Label(self.client, x, name='?') for x in to_ids])
-    for label in from_map_label:
-      label.fetch()
-    for labels in to_map_labels:
-      for label in labels:
-        label.fetch()
     self.label_mapping = {}
     for (index, from_map) in enumerate(from_map_label):
       self.label_mapping[from_map] = to_map_labels[index]
@@ -120,6 +117,19 @@ class Bot:
     self.comment_via_label = {}
     for (index, item) in enumerate(from_map_label):
       self.comment_via_label[item] = to_map_comment[index]
+
+  def prepare_comment_from_list(self):
+    print('preparing comment from list')
+    comment_mapping = self.config.get('comment_from_list', {})
+    from_map_list: List[str] = []
+    to_map_comment: List[List[str]] = []
+    for from_id in comment_mapping:
+      to_comments = comment_mapping[from_id]
+      from_map_list.append(from_id)
+      to_map_comment.append(to_comments)
+    self.comment_from_list = {}
+    for (index, item) in enumerate(from_map_list):
+      self.comment_from_list[item] = to_map_comment[index]
 
   max_batch = 1
   current_batch_index = 0
@@ -159,6 +169,9 @@ class Bot:
     # remove all labels
     for label in card_labels:
       card.remove_label(label)
+    # find comment for list
+    comments_via_list = self.comment_from_list.get(card.list_id, [])
+    comments_to_make += comments_via_list
     # move card
     card.change_board(to_list.board.id, to_list.id)
     # assign members
@@ -200,6 +213,7 @@ class Bot:
     self.prepare_label_mapping()
     self.prepare_member_via_label()
     self.prepare_comment_via_label()
+    self.prepare_comment_from_list()
     self.start_tasks()
 
 
