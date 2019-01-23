@@ -186,6 +186,8 @@ class Bot:
     # copy card
     new_card = copy_card(card, to_list, labels_to_apply, members_to_assign)
     # comments
+    for comment in comments_to_make:
+      new_card.comment(comment)
     if self.config.get('comment_original_card_share_link_to_copied_card', False):
       new_card.comment(card.short_url)
     # remove mapping labels and add label via labels_to_change_with_label_mapping_labels if present
