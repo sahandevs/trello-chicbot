@@ -2,7 +2,7 @@ from trello import TrelloClient, Board, Card, Label
 import trello
 from typing import *
 import sys
-import json
+import json5
 from lib_trello.trello_extensions import copy_card
 
 
@@ -315,7 +315,7 @@ def main():
   config_path = sys.argv[1]
   with open(config_path, mode='r', encoding="utf-8") as file:
     config = file.read()
-  config = json.loads(config)
+  config = json5.loads(config)
   bot = Bot(config)
   bot.start()
 
