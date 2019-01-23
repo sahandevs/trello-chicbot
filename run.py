@@ -179,7 +179,10 @@ class Bot:
       card.assign(member)
     # label
     for label in labels_to_apply:
-      card.add_label(label)
+      try:
+        card.add_label(label)
+      except:
+        pass
     # comment
     for comment in comments_to_make:
       card.comment(comment)
@@ -219,7 +222,7 @@ class Bot:
 
 def main():
   config_path = sys.argv[1]
-  with open(config_path, mode='r') as file:
+  with open(config_path, mode='r', encoding="utf-8") as file:
     config = file.read()
   config = json.loads(config)
   bot = Bot(config)
