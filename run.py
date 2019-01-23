@@ -3,7 +3,7 @@ import trello
 from typing import *
 import sys
 import json
-from lib.trello_extensions import copy_card
+from lib_trello.trello_extensions import copy_card
 
 
 class Bot:
