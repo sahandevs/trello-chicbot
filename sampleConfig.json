@@ -7,12 +7,16 @@
   "comment_original_card_share_link_to_copied_card": false,
   "api_key": "",
   "api_secret": "",
+  "label_to_list_mapping": {
+  },
   "list_mapping": {
     "#to_sprint": "#sprint",
     "#to_waiting": "#waiting"
   },
   "comment_from_list": {
-    "from_list_id": ["comment"]
+    "from_list_id": [
+      "comment"
+    ]
   },
   "label_mapping": {
     "label": [

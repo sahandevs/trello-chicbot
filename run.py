@@ -15,6 +15,7 @@ class Bot:
   dest_board: Board
 
   list_mapping: Dict[trello.List, trello.List]
+  label_to_list_mapping: Dict[str, trello.List]
   label_mapping: Dict[Label, List[Label]]
 
   member_via_label: Dict[str, List[str]]
@@ -69,6 +70,19 @@ class Bot:
     Bot.extract_board_info(self.dest_board)
 
   # bot
+
+  def prepare_label_to_list_mapping(self):
+    print('preparing label to list mappings...')
+    list_mapping = self.config.get('label_to_list_mapping', {})
+    from_map_labels: List[str] = []
+    to_map_list: List[trello.List] = []
+    for from_id in list_mapping:
+      to_id = list_mapping[from_id]
+      from_map_labels.append(from_id)
+      to_map_list.append(trello.List(self.dest_board, to_id))
+    self.label_to_list_mapping = {}
+    for (index, from_map) in enumerate(from_map_labels):
+      self.label_to_list_mapping[from_map] = to_map_list[index]
 
   def prepare_list_mapping(self):
     print('preparing list mappings...')
@@ -234,7 +248,7 @@ class Bot:
       self.current_task_index += 1
       self.update_status()
 
-  def start_tasks(self):
+  def start_tasks_via_list_mapping(self):
     print('starting tasks...\n\n')
     self.max_batch = len(self.list_mapping)
     self.update_status()
@@ -245,13 +259,40 @@ class Bot:
       self.update_status()
     print('\n\n Done!')
 
+  def start_tasks_via_label_to_list_mapping(self):
+    print('finding cards...')
+    label_to_cards_map: Dict[str: List[Card]] = {}
+    for card in self.source_board.all_cards():
+      for label in card.labels:
+        for map_label in self.label_to_list_mapping:
+          if label.id == map_label:
+            if label_to_cards_map[map_label] is None:
+              label_to_cards_map[map_label] = []
+            label_to_cards_map[map_label].append(card)
+    print('stating tasks...\n\n')
+    self.max_batch = len(label_to_cards_map)
+    self.update_status()
+    for batch in label_to_cards_map:
+      self.current_task_index = 0
+      self.max_tasks = len(label_to_cards_map[batch])
+      self.update_status()
+      for task in label_to_cards_map[batch]:
+        self.run_task_copy(task, self.label_to_list_mapping[batch])
+        self.current_task_index += 1
+        self.update_status()
+    print('\n\n Done!')
+
   def start_bot(self):
-    self.prepare_list_mapping()
     self.prepare_label_mapping()
     self.prepare_member_via_label()
     self.prepare_comment_via_label()
     self.prepare_comment_from_list()
-    self.start_tasks()
+    if self.config.get('label_to_list_mapping', None):
+      self.prepare_label_to_list_mapping()
+      self.start_tasks_via_label_to_list_mapping()
+    else:
+      self.prepare_list_mapping()
+      self.start_tasks_via_list_mapping()
 
 
 def main():
