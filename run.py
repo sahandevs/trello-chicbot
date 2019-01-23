@@ -263,10 +263,13 @@ class Bot:
     print('finding cards...')
     label_to_cards_map: Dict[str: List[Card]] = {}
     for card in self.source_board.all_cards():
-      for label in card.labels:
+      card_labels = card.labels
+      if card_labels is None:
+        card_labels = []
+      for label in card_labels:
         for map_label in self.label_to_list_mapping:
           if label.id == map_label:
-            if label_to_cards_map[map_label] is None:
+            if label_to_cards_map.get(map_label, None) is None:
               label_to_cards_map[map_label] = []
             label_to_cards_map[map_label].append(card)
     print('stating tasks...\n\n')
