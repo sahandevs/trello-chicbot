@@ -190,6 +190,7 @@ class Bot:
       new_card.comment(comment)
     if self.config.get('comment_original_card_share_link_to_copied_card', False):
       new_card.comment(card.short_url)
+      card.comment(new_card.short_url)
     # remove mapping labels and add label via labels_to_change_with_label_mapping_labels if present
     labels_to_remove = [label for label in card_labels if label.id in self.label_to_list_mapping]
     change_label_mapping = self.config.get('labels_to_change_with_label_mapping_labels', {})
